@@ -153,7 +153,7 @@ def league_thread(champ: dict, lock: bool, http: str, psw: str, port: str):
     inThr = True
     print(f'Luồng đang chạy hãy tìm trận đi nào. Tướng: {champion} Lock: {lock}')
 
-    while True:
+    while inThr:
         id = get_action_id('riot', psw, http, port)
         if id == -1:
             continue
