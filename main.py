@@ -136,8 +136,11 @@ def handler(inp):
     with open(lock_file, 'r') as f:
         content = f.read().split(":")
 
-    if inp == b'4':
-        threading.Thread(target=match_accept_thread, args=(content[4], content[3], content[2])).start()
+    if inp == b'4' or inp == b'3':
+        message = None
+        if inp == b'3':
+            message = input('Nhập tin nhắn cần gởi: ')
+        threading.Thread(target=match_accept_thread, args=(content[4], content[3], content[2], message)).start()
         return
 
     req_url = f'{content[4]}://riot:{content[3]}@127.0.0.1:{content[2]}'
@@ -157,7 +160,7 @@ def handler(inp):
     threading.Thread(target=pick_lock_thread, args=(fc, pick_lock, content[4], content[3], content[2])).start()
 
 
-def match_accept_thread(http: str, psw: str, port: str):
+def match_accept_thread(http: str, psw: str, port: str, message: str):
     global accept_thread
     if accept_thread:
         accept_thread = False
@@ -170,9 +173,13 @@ def match_accept_thread(http: str, psw: str, port: str):
     while accept_thread:
         time.sleep(0.2)
         if is_match_found('riot', psw, http, port):
-            accept_match('riot', psw, http, port)
-            print('Done! Hoàn tất tính năng sẽ được tắt.')
 
+            try:
+                accept_match('riot', psw, http, port)
+            except JSONDecodeError:
+                pass
+            print('Done! Hoàn tất tính năng sẽ được tắt.')
+            accept_thread = False
             break
 
 
