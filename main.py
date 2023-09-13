@@ -1,9 +1,11 @@
+import asyncio
 import base64
 import json
+import msvcrt
 import os
+import signal
 import threading
 import time
-from json import JSONDecoder
 
 import psutil
 
@@ -15,8 +17,9 @@ from requests.auth import HTTPBasicAuth
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ChampPicker by l2stack
-artDecode = 'ICQkJCQkJFwgICQkXCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJCQkJCQkJFwgICQkXCAgICAgICAgICAgJCRcCiQkICBfXyQkXCAkJCB8ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICQkICBfXyQkXCBcX198ICAgICAgICAgICQkIHwKJCQgLyAgXF9ffCQkJCQkJCRcICAgJCQkJCQkXCAgJCQkJCQkXCQkJCRcICAgJCQkJCQkXCAgJCQgfCAgJCQgfCQkXCAgJCQkJCQkJFwgJCQgfCAgJCRcICAkJCQkJCRcICAgJCQkJCQkXAokJCB8ICAgICAgJCQgIF9fJCRcICBcX19fXyQkXCAkJCAgXyQkICBfJCRcICQkICBfXyQkXCAkJCQkJCQkICB8JCQgfCQkICBfX19fX3wkJCB8ICQkICB8JCQgIF9fJCRcICQkICBfXyQkXAokJCB8ICAgICAgJCQgfCAgJCQgfCAkJCQkJCQkIHwkJCAvICQkIC8gJCQgfCQkIC8gICQkIHwkJCAgX19fXy8gJCQgfCQkIC8gICAgICAkJCQkJCQgIC8gJCQkJCQkJCQgfCQkIHwgIFxfX3wKJCQgfCAgJCRcICQkIHwgICQkIHwkJCAgX18kJCB8JCQgfCAkJCB8ICQkIHwkJCB8ICAkJCB8JCQgfCAgICAgICQkIHwkJCB8ICAgICAgJCQgIF8kJDwgICQkICAgX19fX3wkJCB8ClwkJCQkJCQgIHwkJCB8ICAkJCB8XCQkJCQkJCQgfCQkIHwgJCQgfCAkJCB8JCQkJCQkJCAgfCQkIHwgICAgICAkJCB8XCQkJCQkJCRcICQkIHwgXCQkXCBcJCQkJCQkJFwgJCQgfAogXF9fX19fXy8gXF9ffCAgXF9ffCBcX19fX19fX3xcX198IFxfX3wgXF9ffCQkICBfX19fLyBcX198ICAgICAgXF9ffCBcX19fX19fX3xcX198ICBcX198IFxfX19fX19ffFxfX3wKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAkJCB8CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJCQgfAkJYnk6IGwyc3RhY2sKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBcX198IApUb29sIHThu7EgxJHhu5luZyBjaOG6pXAgbmjhuq1uIHRy4bqtbiB2w6AgbG9jayB0xrDhu5tuZyBMZWFndWUgT2YgTGVnZW5kcyAoTG9jYWwgY2xpZW50KQpIw6N5IG5o4bqtcCB0w7l5IGNo4buNbjogKDEpIFBpY2sgdMaw4bubbmcgKDIpIFBpY2sgdsOgIGxvY2sgdMaw4bubbmc='
-inThr = False
+artDecode = 'IF9fX19fIF8gICAgICAgICAgICAgICAgICAgICAgICAgIF9fX19fXyBfICAgICAgXwovICBfXyBcIHwgICAgICAgICAgICAgICAgICAgICAgICAgfCBfX18gKF8pICAgIHwgfAp8IC8gIFwvIHxfXyAgIF9fIF8gXyBfXyBfX18gIF8gX18gfCB8Xy8gL18gIF9fX3wgfCBfX19fXyBfIF9fCnwgfCAgIHwgJ18gXCAvIF9gIHwgJ18gYCBfIFx8ICdfIFx8ICBfXy98IHwvIF9ffCB8LyAvIF8gXCAnX198CnwgXF9fL1wgfCB8IHwgKF98IHwgfCB8IHwgfCB8IHxfKSB8IHwgICB8IHwgKF9ffCAgIDwgIF9fLyB8CiBcX19fXy9ffCB8X3xcX18sX3xffCB8X3wgfF98IC5fXy9cX3wgICB8X3xcX19ffF98XF9cX19ffF98CiAgICAgICAgICAgICAgICAgICAgICAgICAgICB8IHwKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHxffCAgICAgICBieTogbDJzdGFjawpC4bqlbSBjw6FjIHBow61tIHPhu5EgYsOqbiBkxrDhu5tpIHTGsMahbmcg4bupbmcgY8OhYyB0w61uaCBuxINuZyDEkcaw4bujYyBsaeG7h3Qga8OqOgoJMTogQ2jhu4kgcGljayB0xrDhu5tuZwoJMjogUGljayB2w6AgbG9jayB0xrDhu5tuZwoJMzogTW9kc2tpbiAoxJBhbmcgcGjDoXQgdHJp4buDbikKCTQ6IFThu7EgxJHhu5luZyBjaOG6pXAgbmjhuq1uIHRy4bqtbiDEkeG6pXUKCTU6IMSQw7NuZyDhu6luZyBk4bulbmc='
+pick_thread = False
+accept_thread = False
 leagueClientExe = "LeagueClient.exe"
 
 getChamps = '/lol-champions/v1/owned-champions-minimal'
@@ -109,6 +112,15 @@ def get_action_id(account, password, http, port):
     return -1
 
 
+def is_match_found(account, password, http, port):
+    response = request('/lol-matchmaking/v1/ready-check', account, password, http, port)
+    return response.get('state', '') == 'InProgress'
+
+
+def accept_match(account, password, http, port):
+    request('/lol-matchmaking/v1/ready-check/accept', account, password, http, port, 'POST')
+
+
 def handler(inp):
     dir = get_execute_dir(leagueClientExe)
     if dir is None:
@@ -120,40 +132,66 @@ def handler(inp):
         print('Không tìm thấy lock file')
         return
 
-    pick_lock = inp == '2'
+    pick_lock = inp == b'2'
     with open(lock_file, 'r') as f:
         content = f.read().split(":")
-    req_url = f'{content[4]}://riot:{content[3]}@127.0.0.1:{content[2]}'
-    champs = process_json(make_request('GET', req_url + getChamps))
-    if champs is None:
-        print('Không thể fetch dữ liệu! Hãy chắc rằng liên minh đã hoạt động.')
+
+    if inp == b'4':
+        threading.Thread(target=match_accept_thread, args=(content[4], content[3], content[2])).start()
         return
 
+    req_url = f'{content[4]}://riot:{content[3]}@127.0.0.1:{content[2]}'
+    champs = process_json(make_request('GET', req_url + getChamps))
+
     while True:
-        champ = input('Nhập tên tướng: ')
+        champ = input('Nhập tên tướng cần tìm (Vd: na -> Nasus): ')
         fc = find(champ, champs)
-        print(f'Chọn: {fc}')
-        if input('Bấm y để chọn enter để hủy: ') == 'y':
+
+        if fc is None:
+            print('Không tìm thấy tướng hãy thử lại.')
+            return
+
+        print(f'Chọn tướng: {fc}')
+        if input('Bấm (y và enter) để chọn bấm enter để hủy: ').lower() == 'y':
             break
-    threading.Thread(target=league_thread, args=(fc, pick_lock, content[4], content[3], content[2])).start()
+    threading.Thread(target=pick_lock_thread, args=(fc, pick_lock, content[4], content[3], content[2])).start()
 
 
-def league_thread(champ: dict, lock: bool, http: str, psw: str, port: str):
+def match_accept_thread(http: str, psw: str, port: str):
+    global accept_thread
+    if accept_thread:
+        accept_thread = False
+        print('Đã tắt tính năng tự động chấp nhận trận.')
+        return
+    time.sleep(1)
+    accept_thread = True
+    print('Đã bật tính năng tự động chấp nhận trận đấu.')
+
+    while accept_thread:
+        time.sleep(0.2)
+        if is_match_found('riot', psw, http, port):
+            accept_match('riot', psw, http, port)
+            print('Done! Hoàn tất tính năng sẽ được tắt.')
+
+            break
+
+
+def pick_lock_thread(champ: dict, lock: bool, http: str, psw: str, port: str):
     champion = None
     champid = None
 
-    global inThr
-    if inThr:
-        inThr = False
+    global pick_thread
+    if pick_thread:
+        pick_thread = False
         time.sleep(1)
 
     for k in champ.keys():
         champion = champ[k]
         champid = k
-    inThr = True
+    pick_thread = True
     print(f'Luồng đang chạy hãy tìm trận đi nào. Tướng: {champion} Lock: {lock}')
 
-    while inThr:
+    while pick_thread:
         id = get_action_id('riot', psw, http, port)
         if id == -1:
             continue
@@ -173,9 +211,22 @@ def league_thread(champ: dict, lock: bool, http: str, psw: str, port: str):
         break
 
 
+def kill():
+    current_pid = os.getpid()
+    asyncio.run(os.kill(current_pid, signal.SIGTERM))
+
+
 if __name__ == '__main__':
     print(decode(artDecode))
 
+    # while True:
+    #     inp = input("> ")
+    #     time.sleep(1)
+    #     handler(inp)
     while True:
-        inp = input("> ")
-        handler(inp)
+        if msvcrt.kbhit():
+            key = msvcrt.getch()
+            if key in [b'1', b'2', b'4', b'5']:
+                if key == b'5':
+                    kill()
+                handler(key)

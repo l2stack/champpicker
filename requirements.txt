@@ -6,3 +6,5 @@ time
 psutil
 requests
 urllib3
+asyncio
+msvcrt
