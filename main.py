@@ -123,12 +123,12 @@ def accept_match(account, password, http, port):
 
 
 def handler(inp):
-    dir = get_execute_dir(leagueClientExe)
-    if dir is None:
+    working_directory = get_execute_dir(leagueClientExe)
+    if working_directory is None:
         print('League Of Legends hiện không hoạt động')
         return
 
-    lock_file = os.path.join(os.path.dirname(dir), 'lockfile')
+    lock_file = os.path.join(os.path.dirname(working_directory), 'lockfile')
     if not os.path.exists(lock_file):
         print('Không tìm thấy lock file')
         return
@@ -146,6 +146,9 @@ def handler(inp):
 
     req_url = f'{content[4]}://riot:{content[3]}@127.0.0.1:{content[2]}'
     champs = process_json(make_request('GET', req_url + getChamps))
+    if champs is None:
+        print('Error! Hãy thử lại (có vẻ client vẫn chưa khởi động xong)')
+        return
 
     while True:
         champ = input('Nhập tên tướng cần tìm (Vd: na -> Nasus): ')
@@ -156,7 +159,7 @@ def handler(inp):
             return
 
         print(f'Chọn tướng: {fc}')
-        if input('Bấm (y và enter) để chọn bấm enter để hủy: ').lower() == 'y':
+        if input('Nhập y để chọn enter để hủy: ').lower() == 'y':
             break
     threading.Thread(target=pick_lock_thread, args=(fc, pick_lock, content[4], content[3], content[2])).start()
 
@@ -169,7 +172,7 @@ def match_accept_thread(http: str, psw: str, port: str, message: str):
         return
     time.sleep(1)
     accept_thread = True
-    print('Đã bật tính năng tự động chấp nhận trận đấu.')
+    print('Tự động chấp nhận trận đã bật.')
 
     while accept_thread:
         time.sleep(0.2)
@@ -179,7 +182,7 @@ def match_accept_thread(http: str, psw: str, port: str, message: str):
                 accept_match('riot', psw, http, port)
             except JSONDecodeError:
                 pass
-            print('Done! Hoàn tất tính năng sẽ được tắt.')
+            print('Hoàn tất! Tính năng sẽ được tắt.')
             accept_thread = False
             break
 
@@ -197,40 +200,36 @@ def pick_lock_thread(champ: dict, lock: bool, http: str, psw: str, port: str):
         champion = champ[k]
         champid = k
     pick_thread = True
-    print(f'Luồng đang chạy hãy tìm trận đi nào. Tướng: {champion} Lock: {lock}')
+    print(f'Chọn tướng: {champion} Khóa tướng: {lock}')
 
     while pick_thread:
-        id = get_action_id('riot', psw, http, port)
-        if id == -1:
+        action_id = get_action_id('riot', psw, http, port)
+        if action_id == -1:
             continue
 
         try:
-            pick(id, champid, 'riot', psw, http, port)
+            pick(action_id, champid, 'riot', psw, http, port)
         except JSONDecodeError:
             pass
 
         if lock:
             try:
-                _lock(id, 'riot', psw, http, port)
+                _lock(action_id, 'riot', psw, http, port)
             except JSONDecodeError:
                 pass
-        print()
         print('Hoàn tất! Bạn có thể tiếp tục chọn.')
+        pick_thread = False
         break
 
 
 def kill():
     current_pid = os.getpid()
-    asyncio.run(os.kill(current_pid, signal.SIGTERM)) # type: ignore
+    asyncio.run(os.kill(current_pid, signal.SIGTERM))  # type: ignore
 
 
 if __name__ == '__main__':
-    print(colorama.Fore.LIGHTYELLOW_EX + decode(artDecode))
+    print(f"{colorama.Fore.YELLOW}{decode(artDecode)}")
 
-    # while True:
-    #     inp = input("> ")
-    #     time.sleep(1)
-    #     handler(inp)
     while True:
         if msvcrt.kbhit():
             key = msvcrt.getch()
