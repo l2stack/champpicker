@@ -3,8 +3,11 @@ json
 os
 threading
 time
-psutil
-requests
-urllib3
+psutil~=5.9.5
+requests~=2.31.0
+urllib3~=2.0.4
 asyncio
 msvcrt
+colorama~=0.4.6
+pypiwin32~=223
+pywin32~=306
