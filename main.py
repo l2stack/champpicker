@@ -163,7 +163,7 @@ class ChampPickerApp:
         self.root.bind("<Button-1>", self.get_position)
         self.root.bind("<B1-Motion>", self.move_window)
 
-        self.create_text_label(30, 30, 12, "ChampPicker v1.0.5")
+        self.create_text_label(30, 30, 12, "ChampPicker v1.0.6")
         self.create_text_label(30, 60, 8, "author: l2stack")
         self.status_label = tk.Label(self.root, text="Nhập tên tướng vd: (na -> nasus):",
                                      font=("monospace", 12), fg="white", bg="#1e1e1e")
