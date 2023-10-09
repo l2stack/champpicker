@@ -257,6 +257,19 @@ class ChampPickerApp:
         self.status_label.configure(text=msg)
 
     def accept_thread(self):
+
+        working_directory = get_execute_dir(self.league_client_exe)
+        if working_directory is None:
+            self._print('League Of Legends hiện không hoạt động')
+            return
+        lock_file = os.path.join(os.path.dirname(working_directory), 'lockfile')
+        if not os.path.exists(lock_file):
+            self._print('Không tìm thấy lock file')
+            return
+        with open(lock_file, 'r') as f:
+            content = f.read().split(":")
+            self.current_lock_file_content = content
+
         if self.current_lock_file_content is None:
             self._print('Liên minh vẫn chưa hoạt động')
             return
