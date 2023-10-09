@@ -19,6 +19,9 @@ ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 # Tắt cảnh báo không an toàn về yêu cầu không an toàn
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+pick_thread = False
+accept_thread = False
+
 
 # ChampPicker by l2stack
 def get_execute_dir(name):
@@ -223,6 +226,11 @@ class ChampPickerApp:
             self.current_lock_file_content = content
 
     def pick_champ(self):
+        global pick_thread
+        if pick_thread:
+            pick_thread = False
+            time.sleep(2)
+
         if self.current_champ_select is None:
             self._print('Chưa tìm tướng cần pick hãy nhập tên và tìm trước')
         else:
@@ -232,6 +240,11 @@ class ChampPickerApp:
                 self.current_lock_file_content[2])).start()
 
     def pick_and_lock_champ(self):
+        global pick_thread
+        if pick_thread:
+            pick_thread = False
+            time.sleep(2)
+
         if self.current_champ_select is None:
             self._print('Chưa tìm tướng cần pick hãy nhập tên và tìm trước')
         else:
@@ -247,17 +260,20 @@ class ChampPickerApp:
         if self.current_lock_file_content is None:
             self._print('Liên minh vẫn chưa hoạt động')
             return
-        threading.Thread(target=self.match_accept_thread, args=(
-            self.current_lock_file_content[4], self.current_lock_file_content[3], self.current_lock_file_content[2],
-            None)).start()
 
-    def match_accept_thread(self, http, psw, port):
-        accept_thread = False
+        global accept_thread
         if accept_thread:
             accept_thread = False
-            self._print('Đã tắt tính năng tự động chấp nhận trận.')
+            time.sleep(2)
+            self._print('Đã tắt tính năng tự động chấp nhận trận')
             return
-        time.sleep(1)
+
+        threading.Thread(target=self.match_accept_thread, args=(
+            self.current_lock_file_content[4], self.current_lock_file_content[3],
+            self.current_lock_file_content[2])).start()
+
+    def match_accept_thread(self, http, psw, port):
+        global accept_thread
         accept_thread = True
         self._print('Tự động chấp nhận trận đã bật.')
 
@@ -273,13 +289,9 @@ class ChampPickerApp:
                 break
 
     def pick_lock_thread(self, champ, lock, http, psw, port):
+        global pick_thread
         champion = None
         champ_id = None
-
-        pick_thread = False
-        if pick_thread:
-            pick_thread = False
-            time.sleep(1)
 
         for k in champ.keys():
             champion = champ[k]
@@ -288,6 +300,7 @@ class ChampPickerApp:
         self._print(f'Chọn tướng: {champion} Khóa tướng: {lock}')
 
         while pick_thread:
+
             action_id = get_action_id('riot', psw, http, port)
             if action_id == -1:
                 continue
