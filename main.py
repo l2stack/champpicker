@@ -12,6 +12,9 @@ import tkinter as tk
 import win32api
 from requests import JSONDecodeError
 from requests.auth import HTTPBasicAuth
+import ctypes
+
+ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 
 # Tắt cảnh báo không an toàn về yêu cầu không an toàn
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -112,7 +115,7 @@ def accept_match(account, password, http, port):
     request('/lol-matchmaking/v1/ready-check/accept', account, password, http, port, 'POST')
 
 
-def match_accept_thread(http, psw, port, message):
+def match_accept_thread(http, psw, port):
     accept_thread = False
     if accept_thread:
         accept_thread = False
@@ -134,8 +137,17 @@ def match_accept_thread(http, psw, port, message):
             break
 
 
+def close():
+    current_pid = os.getpid()
+    asyncio.run(os.kill(current_pid, signal.SIGTERM))
+
+
 class ChampPickerApp:
     def __init__(self):
+        self.window_height = None
+        self.window_width = None
+        self.input_entry = None
+        self.status_label = None
         self.current_champ_select = None
         self.current_lock_file_content = None
         self.league_client_exe = "LeagueClient.exe"
@@ -147,37 +159,53 @@ class ChampPickerApp:
     def initialize_gui(self):
         self.root.title("ChampPicker")
         self.root.configure(bg="#1e1e1e")
-        self.root.overrideredirect(True)
+        # self.root.overrideredirect(True)
+        self.root.resizable(False, False)
+
+        icon_path = win32api.GetModuleFileName(win32api.GetModuleHandle(None))
+        icon_index = 0  # Chọn icon đầu tiên trong file exe (nếu có nhiều icon)
+
+        # Đặt icon cho cửa sổ tkinter
+        self.root.iconbitmap(default=icon_path, bitmap=icon_index)
 
         screen_width = win32api.GetSystemMetrics(0)
         screen_height = win32api.GetSystemMetrics(1)
-        window_width = 612
-        window_height = 180
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
+        self.window_width = 620
+        self.window_height = 190
+        x = (screen_width - self.window_width) // 2
+        y = (screen_height - self.window_height) // 2
 
-        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        self.offset_x, self.offset_y = 0, 0
-
-        # Bind sự kiện di chuyển cửa sổ
-        self.root.bind("<Button-1>", self.get_position)
-        self.root.bind("<B1-Motion>", self.move_window)
+        self.root.geometry(f"{self.window_width}x{self.window_height}+{x}+{y}")
 
         self.create_text_label(30, 30, 12, "ChampPicker v1.0.6")
         self.create_text_label(30, 60, 8, "author: l2stack")
-        self.status_label = tk.Label(self.root, text="Nhập tên tướng vd: (na -> nasus):",
+        self.status_label = tk.Label(self.root, text="Điền tên tướng để tìm vd: (nas -> nasus):",
                                      font=("monospace", 12), fg="white", bg="#1e1e1e")
         self.status_label.place(x=30, y=90)
         self.status_label.config(anchor="w")
 
         self.create_button_label("Tìm tướng", 12, 9, 0, 200, 120, 'green', self.find_champ)
         self.create_button_label("Pick", 12, 9, 0, 300, 120, 'blue', self.pick_champ)
-        self.create_button_label("Pick & Lock", 12, 9, 0, 400, 120, 'purple', self.pick_and_lock_champ)
-        self.create_button_label("Đóng", 12, 9, 0, 500, 120, 'red', command=self.close)
+        self.create_button_label("Pick & Lock", 12, 9, 0, 400, 120, 'blue', self.pick_and_lock_champ)
+        self.create_button_label("Auto accept", 12, 9, 0, 500, 120, 'blue', command=self.accept_thread)
 
-        self.input_entry = tk.Entry(self.root, font=("monospace", 20), fg="black", bd=1)
+        placeholder_text = "Tên tướng"
+        placeholder_var = tk.StringVar()
+        placeholder_var.set(placeholder_text)
+
+        self.input_entry = tk.Entry(self.root, font=("monospace", 20), fg="black", bd=1, textvariable=placeholder_var)
         self.input_entry.place(x=30, y=120)
         self.input_entry.config(width=10, insertbackground="white")
+        self.input_entry.bind("<FocusIn>", self.on_entry_click)
+        self.input_entry.bind("<FocusOut>", self.on_focusout)
+
+    def on_entry_click(self, event):
+        if self.input_entry.get() == "Tên tướng":
+            self.input_entry.delete(0, "end")
+
+    def on_focusout(self, event):
+        if self.input_entry.get() == "":
+            self.input_entry.insert(0, "Tên tướng")
 
     def create_text_label(self, pos_x, pos_y, size, message):
         label = tk.Label(self.root, text=message, font=("monospace", size), fg="white", bg="#1e1e1e")
@@ -189,17 +217,6 @@ class ChampPickerApp:
                         width=btn_width, height=btn_height, bd=5)
         btn.place(x=pos_x, y=pos_y)
         btn.config(cursor="hand2")
-
-    def close(self):
-        current_pid = os.getpid()
-        asyncio.run(os.kill(current_pid, signal.SIGTERM))
-
-    def get_position(self, event):
-        self.offset_x = event.x
-        self.offset_y = event.y
-
-    def move_window(self, event):
-        self.root.geometry(f"{612}x{180}+{event.x_root - self.offset_x}+{event.y_root - self.offset_y}")
 
     def find_champ(self):
         working_directory = get_execute_dir(self.league_client_exe)
@@ -248,46 +265,13 @@ class ChampPickerApp:
     def _print(self, msg):
         self.status_label.configure(text=msg)
 
-    # def handler(self, inp):
-    #     working_directory = get_execute_dir(self.league_client_exe)
-    #     if working_directory is None:
-    #         print('League Of Legends hiện không hoạt động')
-    #         return
-    #     lock_file = os.path.join(os.path.dirname(working_directory), 'lockfile')
-    #     if not os.path.exists(lock_file):
-    #         print('Không tìm thấy lock file')
-    #         return
-    #
-    #     pick_lock = inp == '2'
-    #     with open(lock_file, 'r') as f:
-    #         content = f.read().split(":")
-    #
-    #     if inp == '4' or inp == '3':
-    #         message = None
-    #         if inp == '3':
-    #             message = input('Nhập tin nhắn cần gởi: ')
-    #         threading.Thread(target=self.match_accept_thread,
-    #                          args=(content[4], content[3], content[2], message)).start()
-    #         return
-    #
-    #     req_url = f'{content[4]}://riot:{content[3]}@127.0.0.1:{content[2]}'
-    #     champs = process_json(make_request('GET', req_url + self.get_champs_url))
-    #     if champs is None:
-    #         print('Error! Hãy thử lại (có vẻ client vẫn chưa khởi động xong)')
-    #         return
-    #
-    #     while True:
-    #         champ = input('Nhập tên tướng cần tìm (Vd: na -> Nasus): ')
-    #         fc = find(champ, champs)
-    #
-    #         if fc is None:
-    #             print('Không tìm thấy tướng hãy thử lại.')
-    #             return
-    #
-    #         print(f'Chọn tướng: {fc}')
-    #         if input('Nhập y để chọn enter để hủy: ').lower() == 'y':
-    #             break
-    #     threading.Thread(target=self.pick_lock_thread, args=(fc, pick_lock, content[4], content[3], content[2])).start()
+    def accept_thread(self):
+        if self.current_lock_file_content is None:
+            self._print('Liên minh vẫn chưa hoạt động')
+            return
+        threading.Thread(target=match_accept_thread, args=(
+            self.current_lock_file_content[4], self.current_lock_file_content[3], self.current_lock_file_content[2],
+            None)).start()
 
     def pick_lock_thread(self, champ, lock, http, psw, port):
         champion = None
