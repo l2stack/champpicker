@@ -115,28 +115,6 @@ def accept_match(account, password, http, port):
     request('/lol-matchmaking/v1/ready-check/accept', account, password, http, port, 'POST')
 
 
-def match_accept_thread(http, psw, port):
-    accept_thread = False
-    if accept_thread:
-        accept_thread = False
-        print('Đã tắt tính năng tự động chấp nhận trận.')
-        return
-    time.sleep(1)
-    accept_thread = True
-    print('Tự động chấp nhận trận đã bật.')
-
-    while accept_thread:
-        time.sleep(0.2)
-        if is_match_found('riot', psw, http, port):
-            try:
-                accept_match('riot', psw, http, port)
-            except JSONDecodeError:
-                pass
-            print('Hoàn tất! Tính năng sẽ được tắt.')
-            accept_thread = False
-            break
-
-
 def close():
     current_pid = os.getpid()
     asyncio.run(os.kill(current_pid, signal.SIGTERM))
@@ -269,9 +247,30 @@ class ChampPickerApp:
         if self.current_lock_file_content is None:
             self._print('Liên minh vẫn chưa hoạt động')
             return
-        threading.Thread(target=match_accept_thread, args=(
+        threading.Thread(target=self.match_accept_thread, args=(
             self.current_lock_file_content[4], self.current_lock_file_content[3], self.current_lock_file_content[2],
             None)).start()
+
+    def match_accept_thread(self, http, psw, port):
+        accept_thread = False
+        if accept_thread:
+            accept_thread = False
+            self._print('Đã tắt tính năng tự động chấp nhận trận.')
+            return
+        time.sleep(1)
+        accept_thread = True
+        self._print('Tự động chấp nhận trận đã bật.')
+
+        while accept_thread:
+            time.sleep(0.2)
+            if is_match_found('riot', psw, http, port):
+                try:
+                    accept_match('riot', psw, http, port)
+                except JSONDecodeError:
+                    pass
+                self._print('Hoàn tất! Tính năng sẽ được tắt.')
+                accept_thread = False
+                break
 
     def pick_lock_thread(self, champ, lock, http, psw, port):
         champion = None
