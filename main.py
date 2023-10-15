@@ -123,8 +123,19 @@ def close():
     asyncio.run(os.kill(current_pid, signal.SIGTERM))
 
 
+def f_float(val: str):
+    try:
+        return float(val)
+    except:
+        return 0
+
+
 class ChampPickerApp:
     def __init__(self):
+        self.default_value_e_1 = None
+        self.default_value_e_2 = None
+        self.input_entry_2 = None
+        self.input_entry_1 = None
         self.window_height = None
         self.window_width = None
         self.input_entry = None
@@ -177,6 +188,26 @@ class ChampPickerApp:
         self.input_entry = tk.Entry(self.root, font=("monospace", 20), fg="black", bd=1, textvariable=placeholder_var)
         self.input_entry.place(x=30, y=120)
         self.input_entry.config(width=10, insertbackground="white")
+
+        self.default_value_e_1 = tk.StringVar()
+        self.default_value_e_1.set('0')
+        self.default_value_e_2 = tk.StringVar()
+        self.default_value_e_2.set('0.5')
+
+        self.create_text_label(400, 30, 8, "Pick: ")
+        self.create_text_label(465, 30, 8, "Chấp nhận trận: ")
+
+        self.input_entry_1 = tk.Entry(self.root, font=("monospace", 10), fg="black", bd=1)
+        self.input_entry_1.place(x=430, y=30)
+        self.input_entry_1.config(width=4, insertbackground="white", textvariable=self.default_value_e_1)
+
+        self.input_entry_2 = tk.Entry(self.root, font=("monospace", 10), fg="black", bd=1)
+        self.input_entry_2.place(x=550, y=30)
+        self.input_entry_2.config(width=4, insertbackground="white", textvariable=self.default_value_e_2)
+
+        self.create_text_label(395, 60, 8, "* Thời gian delay mỗi lần request nếu bật")
+        self.create_text_label(395, 75, 8, "  gây lag hãy tăng giá trị mili giây lên")
+
         self.input_entry.bind("<FocusIn>", self.on_entry_click)
         self.input_entry.bind("<FocusOut>", self.on_focusout)
 
@@ -305,7 +336,7 @@ class ChampPickerApp:
         global pick_thread
         champion = None
         champ_id = None
-
+        sleep = f_float(self.default_value_e_1.get()) if self.default_value_e_1 is not None else 0
         for k in champ.keys():
             champion = champ[k]
             champ_id = k
