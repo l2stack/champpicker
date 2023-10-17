@@ -4,6 +4,10 @@
 - Hiện vẫn chưa có tính năng tự động banpick nên không đem vào hạng
 - Hãy đóng góp nếu bạn có thể
 > Tool chỉ mượn tay mượn chân client nên không sợ ăn ban nhé ace.
-> Pick chưa chắc đã giật được có khi bên kia cũng có người dùng và do mạng người ta nhanh hơn nên người ta giật đc :3
+
+> Pick chưa chắc đã giật được có khi bên kia cũng có người dùng và do mạng người ta nhanh hơn nên người ta giật đc :3.
+
+> Tool giờ đây đã hỗ trợ gui giúp sử dụng đơn giản hơn, nhanh hơn
+
 
 **ĐỪNG LẠM DỤNG NÓ VÌ RẤT VUI**
