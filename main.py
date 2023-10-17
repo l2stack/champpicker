@@ -185,7 +185,7 @@ class ChampPickerApp:
 
         self.root.geometry(f"{self.window_width}x{self.window_height}+{x}+{y}")
 
-        self.create_text_label(30, 30, 12, "ChampPicker v1.0.8")
+        self.create_text_label(30, 30, 12, "ChampPicker v1.1.0")
         self.create_text_label(30, 60, 8, "author: l2stack")
         self.status_label = tk.Label(self.root, text="Điền tên tướng để tìm vd: (nas -> nasus):",
                                      font=("monospace", 12), fg="white", bg="#1e1e1e")
