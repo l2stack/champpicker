@@ -4,6 +4,7 @@ import os
 import signal
 import threading
 import time
+from tkinter import messagebox
 
 import psutil
 import requests
@@ -136,6 +137,12 @@ def f_float(val: str):
         return 0
 
 
+def _close():
+    if messagebox.askokcancel("Thoát ChamPicker?", "Khi thoát ứng dụng sẽ tắt hoàn toàn và không có bất kỳ một thread nào chạy nữa.\n"
+                                                   "Nếu bạn vẫn cần sử dụng hãy cứ mở app bạn có thể thu nhỏ nó bằng nút [-]"):
+        close()
+
+
 class ChampPickerApp:
     global pick_thread_sleep, accept_thread_sleep
 
@@ -154,6 +161,7 @@ class ChampPickerApp:
 
         self.get_champs_url = '/lol-champions/v1/owned-champions-minimal'
         self.root = tk.Tk()
+        self.root.protocol("WM_DELETE_WINDOW", _close)
         self.initialize_gui()
 
     def initialize_gui(self):
