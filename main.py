@@ -21,6 +21,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 pick_thread = False
 accept_thread = False
+pick_thread_sleep = 0
+accept_thread_sleep = 0.2
 
 
 # ChampPicker by l2stack
@@ -125,12 +127,18 @@ def close():
 
 def f_float(val: str):
     try:
-        return float(val)
+        f = float(val)
+        if 0 < f <= 3:
+            return f
+        else:
+            return 0 if f <= 0 else 3
     except:
         return 0
 
 
 class ChampPickerApp:
+    global pick_thread_sleep, accept_thread_sleep
+
     def __init__(self):
         self.default_value_e_1 = None
         self.default_value_e_2 = None
@@ -192,21 +200,21 @@ class ChampPickerApp:
         self.default_value_e_1 = tk.StringVar()
         self.default_value_e_1.set('0')
         self.default_value_e_2 = tk.StringVar()
-        self.default_value_e_2.set('0.5')
+        self.default_value_e_2.set('0.2')
 
-        self.create_text_label(400, 30, 8, "Pick: ")
-        self.create_text_label(465, 30, 8, "Chấp nhận trận: ")
+        self.create_text_label(340, 30, 8, "Pick: ")
+        self.create_text_label(405, 30, 8, "Chấp nhận trận: ")
 
         self.input_entry_1 = tk.Entry(self.root, font=("monospace", 10), fg="black", bd=1)
-        self.input_entry_1.place(x=430, y=30)
+        self.input_entry_1.place(x=370, y=30)
         self.input_entry_1.config(width=4, insertbackground="white", textvariable=self.default_value_e_1)
 
         self.input_entry_2 = tk.Entry(self.root, font=("monospace", 10), fg="black", bd=1)
-        self.input_entry_2.place(x=550, y=30)
+        self.input_entry_2.place(x=490, y=30)
         self.input_entry_2.config(width=4, insertbackground="white", textvariable=self.default_value_e_2)
 
-        self.create_text_label(395, 60, 8, "* Thời gian delay mỗi lần request nếu bật")
-        self.create_text_label(395, 75, 8, "  gây lag hãy tăng giá trị mili giây lên")
+        self.create_text_label(335, 60, 8, "* Thời gian chờ để chạy tính năng tối thiểu 0 tối đa 3")
+        self.create_text_label(335, 75, 8, "  vd: Pick = 2.5 thì vào chọn tướng sẽ đợi 2.5s mới chọn")
 
         self.input_entry.bind("<FocusIn>", self.on_entry_click)
         self.input_entry.bind("<FocusOut>", self.on_focusout)
@@ -260,7 +268,7 @@ class ChampPickerApp:
         global pick_thread
         if pick_thread:
             pick_thread = False
-            time.sleep(2)
+            time.sleep(1 + pick_thread_sleep)
 
         if self.current_champ_select is None:
             self._print('Chưa tìm tướng cần pick hãy nhập tên và tìm trước')
@@ -274,7 +282,7 @@ class ChampPickerApp:
         global pick_thread
         if pick_thread:
             pick_thread = False
-            time.sleep(2)
+            time.sleep(1 + pick_thread_sleep)
 
         if self.current_champ_select is None:
             self._print('Chưa tìm tướng cần pick hãy nhập tên và tìm trước')
@@ -308,7 +316,7 @@ class ChampPickerApp:
         global accept_thread
         if accept_thread:
             accept_thread = False
-            time.sleep(2)
+            time.sleep(1 + accept_thread_sleep)
             self._print('Đã tắt tính năng tự động chấp nhận trận')
             return
 
@@ -317,12 +325,14 @@ class ChampPickerApp:
             self.current_lock_file_content[2])).start()
 
     def match_accept_thread(self, http, psw, port):
-        global accept_thread
+        global accept_thread, accept_thread_sleep
         accept_thread = True
         self._print('Tự động chấp nhận trận đã bật.')
-
+        accept_thread_sleep = f_float(self.default_value_e_2.get())
+        self.default_value_e_2.set(f'{accept_thread_sleep}')
         while accept_thread:
-            time.sleep(0.2)
+
+            time.sleep(accept_thread_sleep)
             if is_match_found('riot', psw, http, port):
                 try:
                     accept_match('riot', psw, http, port)
@@ -333,10 +343,11 @@ class ChampPickerApp:
                 break
 
     def pick_lock_thread(self, champ, lock, http, psw, port):
-        global pick_thread
+        global pick_thread, pick_thread_sleep
         champion = None
         champ_id = None
-        sleep = f_float(self.default_value_e_1.get()) if self.default_value_e_1 is not None else 0
+        pick_thread_sleep = f_float(self.default_value_e_1.get())
+        self.default_value_e_1.set(f'{pick_thread_sleep}')
         for k in champ.keys():
             champion = champ[k]
             champ_id = k
@@ -344,7 +355,8 @@ class ChampPickerApp:
         self._print(f'Chọn tướng: {champion} Khóa tướng: {lock}')
 
         while pick_thread:
-
+            if pick_thread_sleep > 0:
+                time.sleep(pick_thread_sleep)
             action_id = get_action_id('riot', psw, http, port)
             if action_id == -1:
                 continue
